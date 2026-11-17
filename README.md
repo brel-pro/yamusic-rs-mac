@@ -64,8 +64,8 @@
 - в [релизах этого репозитория](https://github.com/brel-pro/yamusic-rs-mac/releases) публикуется
   `yamusic-rs-macos-aarch64.zip`. Файлы для Windows и Linux по-прежнему выходят
   в [релизах исходного проекта](https://github.com/SpolzerMod/yamusic-rs/releases);
-- на macOS кнопка «Обновить» смотрит только релизы этого форка и открывает их страницу.
-  Сборки исходного проекта приложение больше не предлагает.
+- на macOS кнопка «Обновить» смотрит только релизы этого форка. Начиная с 1.1.3 она сама
+  скачивает пакет, подменяет приложение и перезапускается. Сборки исходного проекта не предлагаются.
 
 Интерфейс, запросы к Яндекс Музыке и плеер взяты из исходного проекта без переделки.
 
@@ -185,10 +185,10 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 Карточка «Сейчас играет» появляется в Пункте управления, медиаклавиши работают. Трея нет:
 закрытие окна закрывает приложение. Автозапуск открывает окно при входе.
 
-**Обновление.** Приложение проверяет релизы этого форка. Кнопка «Обновить» открывает страницу
-релиза, новый пакет ставится поверх старого: замените приложение в «Программах».
-Сборка 1.1.0 ещё смотрит в исходный проект: один раз поставьте 1.1.1 вручную, дальше кнопка
-ведёт сюда.
+**Обновление.** Приложение проверяет релизы этого форка. С версии 1.1.3 кнопка «Обновить»
+скачивает новый пакет, ставит его на место и перезапускается. Сборки 1.1.2 и старше только
+открывают страницу релиза: поставьте 1.1.3 один раз вручную, дальше замена идёт сама.
+Если папка закрыта для записи, кнопка по-прежнему открывает страницу.
 
 **Удаление.** Выключите автозапуск в настройках, если включали, и удалите приложение.
 Настройки лежат в `~/Library/Application Support/yamusic-rs`, кэш в `~/Library/Caches/yamusic-rs`,
@@ -492,9 +492,8 @@ uses about 65 MB in one process.
   from this fork. It needs an Apple silicon Mac (M1 or newer) and macOS 11 or newer. There is no Intel
   build and no Apple notarization, so the first launch has to be allowed in System Settings
   (right-click the app and choose Open). Now Playing and the media keys work through Control Center.
-  There is no tray icon. The in-app update check looks only at this fork's releases and opens that page;
-  it does not offer builds from the original repository. The 1.1.0 build still checks the original
-  project, so install 1.1.1 by hand once.
+  There is no tray icon. From 1.1.3 the update button downloads this fork's zip, replaces the app
+  and restarts. Older builds only open the release page, so install 1.1.3 by hand once.
 - **Requirements:** Windows 11 (Windows 10 should work but is not tested regularly), Linux or macOS, a Yandex
   account, and Yandex Plus for full-length tracks.
 - **Privacy:** the token is encrypted with Windows DPAPI or kept in the Linux or macOS keychain
