@@ -35,10 +35,15 @@ pub fn prepare(w: &slint::Window) {
 }
 
 /// Рамка остаётся, но заголовок не виден: контент на всю высоту, кнопки системы слева.
+/// Зелёная разворачивает окно на экран, а не уводит его на отдельное пространство:
+/// полноэкранный режим системы сбрасывает эту рамку и окно пропадает.
 fn traffic_lights(view: *mut std::ffi::c_void) {
     const FULL_SIZE: usize = 1 << 15;
     const TITLE_HIDDEN: isize = 1;
     const SEPARATOR_NONE: isize = 1;
+    const FULLSCREEN_PRIMARY: usize = 1 << 7;
+    const FULLSCREEN_AUXILIARY: usize = 1 << 8;
+    const FULLSCREEN_NONE: usize = 1 << 9;
     let window = msg_ptr(view, "window");
     if window.is_null() {
         return;
@@ -48,6 +53,18 @@ fn traffic_lights(view: *mut std::ffi::c_void) {
     msg_set_bool(window, "setTitlebarAppearsTransparent:", true);
     msg_set_isize(window, "setTitleVisibility:", TITLE_HIDDEN);
     msg_set_isize(window, "setTitlebarSeparatorStyle:", SEPARATOR_NONE);
+    let behavior = msg_usize(window, "collectionBehavior");
+    let behavior = behavior & !(FULLSCREEN_PRIMARY | FULLSCREEN_AUXILIARY) | FULLSCREEN_NONE;
+    msg_set_usize(window, "setCollectionBehavior:", behavior);
+    // 0 закрыть, 1 свернуть, 2 развернуть. Смена маски иногда их прячет.
+    for kind in 0..3isize {
+        let button = msg_ptr_isize(window, "standardWindowButton:", kind);
+        if button.is_null() {
+            continue;
+        }
+        msg_set_bool(button, "setHidden:", false);
+        msg_set_bool(button, "setEnabled:", true);
+    }
 }
 
 unsafe extern "C" {
@@ -64,6 +81,12 @@ fn msg_ptr(obj: *mut std::ffi::c_void, name: &str) -> *mut std::ffi::c_void {
     let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8) -> *mut std::ffi::c_void =
         unsafe { std::mem::transmute(objc_msgSend as *const ()) };
     unsafe { f(obj, sel(name)) }
+}
+
+fn msg_ptr_isize(obj: *mut std::ffi::c_void, name: &str, val: isize) -> *mut std::ffi::c_void {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8, isize) -> *mut std::ffi::c_void =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name), val) }
 }
 
 fn msg_usize(obj: *mut std::ffi::c_void, name: &str) -> usize {

@@ -1748,6 +1748,12 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
     #[cfg(not(windows))]
     {
         app.on_close(quit);
+        // Красная кнопка и Cmd+W приходят сюда, а не в App.close. Без этого Slint
+        // только прячет окно, цикл событий живёт дальше, и процесс остаётся без окна.
+        ui.window().on_close_requested(|| {
+            quit();
+            slint::CloseRequestResponse::HideWindow
+        });
         let weak = ui.as_weak();
         sys::on_wake(move || {
             let _ = weak.upgrade_in_event_loop(|ui| reveal(&ui));
