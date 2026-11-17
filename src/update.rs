@@ -43,9 +43,23 @@ fn parse_version(s: &str) -> Option<(u32, u32, u32)> {
     Some((it.next()?.ok()?, it.next()?.ok()?, it.next().unwrap_or(Ok(0)).ok()?))
 }
 
+/// Куда смотреть обновления. На macOS это форк: исходный репозиторий macOS не выпускает.
+/// Windows и Linux остаются на адресе из Cargo.toml.
+pub fn project_url() -> &'static str {
+    if cfg!(target_os = "macos") {
+        "https://github.com/brel-pro/yamusic-rs-mac"
+    } else {
+        env!("CARGO_PKG_REPOSITORY")
+    }
+}
+
 /// Последний релиз, если он новее запущенной версии.
 pub fn check() -> Result<Option<Release>, String> {
-    let api = env!("CARGO_PKG_REPOSITORY").replace("https://github.com/", "https://api.github.com/repos/");
+    check_repo(project_url(), env!("CARGO_PKG_VERSION"))
+}
+
+fn check_repo(repo: &str, current: &str) -> Result<Option<Release>, String> {
+    let api = repo.replace("https://github.com/", "https://api.github.com/repos/");
     let resp = client()?.get(format!("{api}/releases/latest")).send().map_err(|e| crate::config::chain(&e))?;
     // 404 — релизов ещё нет.
     if resp.status() == reqwest::StatusCode::NOT_FOUND {
@@ -56,7 +70,7 @@ pub fn check() -> Result<Option<Release>, String> {
     }
     let v: serde_json::Value = resp.json().map_err(|e| e.to_string())?;
     let tag = v.get("tag_name").and_then(|t| t.as_str()).ok_or("в релизе нет версии")?;
-    let (Some(latest), Some(current)) = (parse_version(tag), parse_version(env!("CARGO_PKG_VERSION"))) else {
+    let (Some(latest), Some(current)) = (parse_version(tag), parse_version(current)) else {
         return Err(format!("непонятная версия {tag}"));
     };
     if latest <= current {
@@ -73,7 +87,12 @@ pub fn check() -> Result<Option<Release>, String> {
     });
     Ok(Some(Release {
         version: tag.trim_start_matches('v').to_string(),
-        page: v.get("html_url").and_then(|u| u.as_str()).unwrap_or(env!("CARGO_PKG_REPOSITORY")).to_string(),
+        // Страницу откроет браузер системы: адрес из ответа берём, только если это https.
+        page: v
+            .get("html_url")
+            .and_then(|u| u.as_str())
+            .and_then(crate::client::browser_url)
+            .unwrap_or_else(|| repo.to_string()),
         exe,
     }))
 }
@@ -153,6 +172,37 @@ mod tests {
         assert_eq!(parse_version("1.10"), Some((1, 10, 0)));
         assert!(parse_version("v0.10.0") > parse_version("0.9.9"));
         assert_eq!(parse_version("latest"), None);
+    }
+
+    #[test]
+    fn mac_does_not_follow_upstream() {
+        if cfg!(target_os = "macos") {
+            assert_eq!(project_url(), "https://github.com/brel-pro/yamusic-rs-mac");
+            assert!(!project_url().contains("SpolzerMod"));
+        } else {
+            assert_eq!(project_url(), env!("CARGO_PKG_REPOSITORY"));
+        }
+    }
+
+    /// Живой запрос. Не в обычном `cargo test`: зависит от GitHub.
+    #[test]
+    #[ignore]
+    fn live_fork_is_newer_than_1_0() {
+        let found = check_repo(project_url(), "1.0.0").expect("запрос");
+        let found = found.expect("релиз новее 1.0.0");
+        assert!(found.page.starts_with("https://github.com/brel-pro/yamusic-rs-mac/"));
+        assert!(found.exe.is_none());
+        assert!(parse_version(&found.version) > parse_version("1.0.0"));
+    }
+
+    /// Сборка 1.1.0 с этим кодом должна увидеть релиз форка и открыть его страницу, не exe.
+    #[test]
+    #[ignore]
+    fn live_110_is_offered_our_release() {
+        let found = check_repo(project_url(), "1.1.0").expect("запрос").expect("релиз новее 1.1.0");
+        assert!(found.page.starts_with("https://github.com/brel-pro/yamusic-rs-mac/"));
+        assert!(found.exe.is_none());
+        assert!(parse_version(&found.version) >= parse_version("1.1.1"));
     }
 
     #[test]

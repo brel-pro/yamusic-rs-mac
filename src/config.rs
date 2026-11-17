@@ -41,6 +41,16 @@ pub struct Config {
     pub mode: String,
     /// Куда скачивать треки. Пусто — Музыка\Яндекс Музыка.
     pub download_dir: String,
+    /// Блоки главной и «Книг и подкастов», которые скрыл пользователь.
+    pub hidden_blocks: Vec<HiddenBlock>,
+}
+
+/// Блок запоминается по id из скелета: он постоянный («recommended_playlists»), а заголовок
+/// меняется («Летняя» → «Осенняя»). Заголовок — только чтобы показать список в настройках.
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct HiddenBlock {
+    pub id: String,
+    pub title: String,
 }
 
 impl Default for Config {
@@ -65,6 +75,7 @@ impl Default for Config {
             navbar_collapsed: false,
             mode: "smooth".into(),
             download_dir: String::new(),
+            hidden_blocks: Vec::new(),
         }
     }
 }

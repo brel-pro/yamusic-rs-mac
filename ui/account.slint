@@ -356,6 +356,11 @@ export component SettingsPage inherits Rectangle {
                 desc: App.download-dir;
                 clicked => { App.setting("download-dir"); }
             }
+            if App.hidden-blocks != "": SettingItem {
+                title: T.t("Вернуть скрытые блоки");
+                desc: App.hidden-blocks;
+                clicked => { App.setting("hidden-blocks"); }
+            }
             SettingItem {
                 title: T.t("Меньше ИИ");
                 desc: T.t("В рекомендациях будет реже встречаться музыка, созданная с помощью ИИ");

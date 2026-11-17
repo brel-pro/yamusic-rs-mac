@@ -85,6 +85,8 @@ export struct LBlock {
     tracks: [TrackItem],
     chart: [ChartRow],
     ready: bool,
+    // У заголовка есть крестик «Скрыть блок».
+    can-hide: bool,
     // Баннер SPECIAL: кнопка и её цвета, текст, «Реклама».
     button: string,
     button-bg: color,
@@ -343,6 +345,9 @@ export global App {
     callback landing-like(int, int);
     callback landing-more(int);
     callback landing-header(int);
+    callback landing-hide(int);
+    // Заголовки скрытых блоков через запятую, для настроек.
+    in property <string> hidden-blocks;
 
     // Страница чарта.
     in property <[ChartRow]> chart-rows;

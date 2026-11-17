@@ -49,9 +49,34 @@ pub fn token_allowed(url: &reqwest::Url) -> bool {
     ["yandex.net", "yandex.ru"].iter().any(|d| host == *d || host.ends_with(&format!(".{d}")))
 }
 
+/// Адрес, который можно отдать системе (ShellExecute, xdg-open), если он пришёл с сервера:
+/// только https с хостом и без логина в адресе (`https://music.yandex.ru@evil.com` ведёт на
+/// evil.com). `file:`, UNC-пути и обработчики протоколов (`ms-msdt:`, `search-ms:`) через
+/// ShellExecute запускают программы, поэтому всё остальное отбрасывается.
+pub fn browser_url(url: &str) -> Option<String> {
+    let u = reqwest::Url::parse(url.trim()).ok()?;
+    let ok = u.scheme() == "https" && u.host_str().is_some_and(|h| !h.is_empty()) && u.username().is_empty() && u.password().is_none();
+    ok.then(|| u.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn browser_urls() {
+        assert_eq!(browser_url("https://music.yandex.ru/promo").as_deref(), Some("https://music.yandex.ru/promo"));
+        assert!(browser_url(" https://github.com/a/b/releases/tag/v1.2.0 ").is_some());
+        assert!(browser_url("http://music.yandex.ru/").is_none());
+        assert!(browser_url("file:///C:/Windows/System32/calc.exe").is_none());
+        assert!(browser_url(r"\\evil.com\share\x.exe").is_none());
+        assert!(browser_url("ms-msdt:/id PCWDiagnostic").is_none());
+        assert!(browser_url("search-ms:query=x").is_none());
+        assert!(browser_url("javascript:alert(1)").is_none());
+        assert!(browser_url("httpx://music.yandex.ru/").is_none());
+        assert!(browser_url("https://music.yandex.ru@evil.com/").is_none());
+        assert!(browser_url("").is_none());
+    }
 
     #[test]
     fn hosts() {

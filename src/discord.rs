@@ -14,7 +14,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 /// Его имя видно в профиле («Слушает …»), картинка `logo` — значок в углу обложки.
 pub const APP_ID: &str = "1570815647133474856";
 /// Ссылка второй кнопки статуса.
-const PROJECT_URL: &str = env!("CARGO_PKG_REPOSITORY");
+fn project_url() -> &'static str {
+    crate::update::project_url()
+}
 
 #[derive(Clone, Default)]
 pub struct DiscordCfg {
@@ -151,7 +153,7 @@ fn activity(t: &Track, start: i64, end: Option<i64>, with_display_type: bool) ->
         "timestamps": { "start": start },
         "buttons": [
             { "label": "Слушать в Яндекс Музыке", "url": url },
-            { "label": env!("APP_NAME"), "url": PROJECT_URL },
+            { "label": env!("APP_NAME"), "url": project_url() },
         ],
     });
     if let Some(end) = end {

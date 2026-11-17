@@ -11,4 +11,3 @@ Terminal=false
 Categories=AudioVideo;Audio;Player;
 Keywords=music;yandex;player;музыка;яндекс;
 StartupWMClass=yamusic-rs
-SingleMainWindow=true

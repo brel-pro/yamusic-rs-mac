@@ -47,6 +47,11 @@ fn is_empty(b: &Block) -> bool {
     b.cards.is_empty() && b.tracks.is_empty() && b.banner.is_none() && b.tabs.iter().all(|t| t.2.is_empty())
 }
 
+/// Скрытые блоки для строки в настройках. Пусто — строка не показывается.
+pub(super) fn hidden_titles(cfg: &crate::config::Config) -> String {
+    cfg.hidden_blocks.iter().map(|h| h.title.as_str()).collect::<Vec<_>>().join(", ")
+}
+
 /// У afisha другие размеры картинок: только 100, 200 и 400.
 fn afisha_size(px: u32) -> u32 {
     [100, 200, 400].into_iter().find(|&s| s >= px).unwrap_or(400)
@@ -71,14 +76,34 @@ impl Ctx {
             return vec![def("CONCERTS_BIG", "Топ для вас", Some(FEED)), def("CONCERTS_GRID", "Концерты для вас", Some(FEED))];
         }
         let Some(sk) = sk else { return Vec::new() };
-        let mut out = sk.head.clone();
+        let st = self.st.borrow();
+        let shown = |d: &&BlockDef| !st.cfg.hidden_blocks.iter().any(|h| h.id == d.id);
+        let mut out: Vec<BlockDef> = sk.head.iter().filter(shown).cloned().collect();
         if !sk.tabs.is_empty() {
             let key = format!("{page:?}");
             let sel = LS.with(|l| l.borrow().tab.get(&key).copied()).unwrap_or(sk.selected).min(sk.tabs.len() - 1);
             out.push(def("TABS", "", None));
-            out.extend(sk.tabs[sel].blocks.iter().cloned());
+            out.extend(sk.tabs[sel].blocks.iter().filter(shown).cloned());
         }
         out
+    }
+
+    fn landing_hide(self: &Rc<Self>, b: usize) {
+        let Some(def) = LS.with(|l| l.borrow().defs.get(b).cloned()) else { return };
+        let ui = self.ui();
+        let app = ui.global::<App>();
+        let Some(row) = app.get_landing_blocks().row_data(b).filter(|r| r.can_hide) else { return };
+        {
+            let mut st = self.st.borrow_mut();
+            if !st.cfg.hidden_blocks.iter().any(|h| h.id == def.id) {
+                st.cfg.hidden_blocks.push(crate::config::HiddenBlock { id: def.id.clone(), title: row.title.to_string() });
+            }
+            st.cfg.save();
+            app.set_hidden_blocks(hidden_titles(&st.cfg).into());
+        }
+        app.set_landing_hover(-1);
+        self.refresh_landing();
+        self.toast(format!("Блок «{}» скрыт. Вернуть его можно в настройках", row.title));
     }
 
     pub(super) fn refresh_landing(self: &Rc<Self>) {
@@ -353,11 +378,14 @@ impl Ctx {
         };
         let desc = if def.kind == "SPECIAL" { banner.subtitle.clone() } else { def.desc.clone() };
         let more = def.more || b.target.is_some() || def.kind == "CHART_TRACKS";
+        // На странице «Концерты» два блока и есть вся страница, их не прячем.
+        let can_hide = !def.id.is_empty() && !title.is_empty() && !matches!(def.kind.as_str(), "CONCERTS_BIG" | "CONCERTS_GRID");
         let row = LBlock {
             kind: kind.into(),
             title: crate::i18n::tr(&title).into(),
             desc: desc.into(),
             more,
+            can_hide,
             tabs: ModelRc::from(tabs_model),
             tab: tab as i32,
             cards: ModelRc::from(cards_model),
@@ -445,7 +473,11 @@ impl Ctx {
                 self.player.send(Cmd::Wave(src));
                 self.start();
             }
-            "url" => sys::open_url(arg),
+            // Адрес из ответа сервера: открываем только https (см. client::browser_url).
+            "url" => match crate::client::browser_url(arg) {
+                Some(u) => sys::open_url(&u),
+                None => crate::config::log(format!("ссылка не открыта: {arg}")),
+            },
             "concert" => sys::open_url(&format!("https://music.yandex.ru/concert/{arg}")),
             "album" | "playlist" if play => self.play_target(target, title),
             "artist" if play => {
@@ -504,7 +536,10 @@ impl Ctx {
                 })
             });
             if let Some(u) = url.filter(|u| !u.is_empty()) {
-                sys::open_url(&u);
+                match crate::client::browser_url(&u) {
+                    Some(safe) => sys::open_url(&safe),
+                    None => crate::config::log(format!("ссылка баннера не открыта: {u}")),
+                }
             }
             return;
         }
@@ -657,6 +692,7 @@ pub(super) fn register(app: &App) {
     app.on_landing_like(|b, i| with_ctx(|c| c.landing_like(b.max(0) as usize, i.max(0) as usize)));
     app.on_landing_header(|b| with_ctx(|c| c.landing_header(b.max(0) as usize)));
     app.on_landing_more(|b| with_ctx(|c| c.landing_header(b.max(0) as usize)));
+    app.on_landing_hide(|b| with_ctx(|c| c.landing_hide(b.max(0) as usize)));
     app.on_chart_play(|i| {
         with_ctx(|c| {
             let tracks = LS.with(|l| l.borrow().chart_tracks.clone());
