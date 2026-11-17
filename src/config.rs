@@ -17,10 +17,12 @@ pub struct Config {
     token_sealed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     refresh_sealed: Option<String>,
-    /// Токен открытым текстом: старый формат или связка ключей недоступна. Как только спрятать
-    /// есть куда, при запуске переносится туда.
+    /// Токен открытым текстом: старый формат, macOS или связка ключей недоступна.
+    /// Файл настроек на Unix доступен только владельцу.
     #[serde(rename = "token", skip_serializing_if = "Option::is_none")]
     token_plain: Option<String>,
+    #[serde(rename = "refresh", skip_serializing_if = "Option::is_none")]
+    refresh_plain: Option<String>,
     /// Unix-время, когда токен истечёт.
     pub token_expires: Option<u64>,
     pub volume: f32,
@@ -61,6 +63,7 @@ impl Default for Config {
             token_sealed: None,
             refresh_sealed: None,
             token_plain: None,
+            refresh_plain: None,
             token_expires: None,
             volume: 0.6,
             discord_enabled: true,
@@ -123,8 +126,33 @@ impl Config {
             if c.token.is_none() {
                 c.token = Some(plain.trim().to_string());
             }
-            // Открытый токен с диска убираем сразу.
+        }
+        if let Some(plain) = c.refresh_plain.clone().filter(|t| !t.trim().is_empty()) {
+            if c.refresh_token.is_none() {
+                c.refresh_token = Some(plain.trim().to_string());
+            }
+        }
+        // Открытый токен на Windows и Linux сразу убираем в DPAPI или связку ключей.
+        #[cfg(not(target_os = "macos"))]
+        if c.token_plain.is_some() || c.refresh_plain.is_some() {
             c.save();
+        }
+        // Старая запись macOS в связке ключей: забрать один раз и больше не спрашивать пароль.
+        #[cfg(target_os = "macos")]
+        if c.token_sealed.as_deref().is_some_and(|s| s.starts_with("keyring:"))
+            || c.refresh_sealed.as_deref().is_some_and(|s| s.starts_with("keyring:"))
+        {
+            c.token_sealed = None;
+            c.refresh_sealed = None;
+            c.save();
+            // Удалять запись из связки только когда файл уже без неё: иначе при сбое записи
+            // токен пропадёт и оттуда, и отсюда.
+            let path = dir().join("config.json");
+            let moved = std::fs::read_to_string(&path).is_ok_and(|s| !s.contains("\"keyring:"));
+            if moved {
+                crate::secret::forget("token");
+                crate::secret::forget("refresh");
+            }
         }
         c
     }
@@ -140,8 +168,9 @@ impl Config {
         if let Some(t) = &self.refresh_token {
             disk.refresh_sealed = crate::secret::seal("refresh", t);
         }
-        // Спрятать некуда (Linux без связки ключей) — открытым текстом, в файле только для владельца.
+        // Спрятать некуда — открытым текстом, в файле только для владельца.
         disk.token_plain = if disk.token_sealed.is_none() { self.token.clone() } else { None };
+        disk.refresh_plain = if disk.refresh_sealed.is_none() { self.refresh_token.clone() } else { None };
         if let Ok(s) = serde_json::to_string_pretty(&disk) {
             let path = dir().join("config.json");
             let tmp = dir().join("config.json.tmp");

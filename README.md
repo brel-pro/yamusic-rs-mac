@@ -58,7 +58,8 @@
 От [исходного репозитория](https://github.com/SpolzerMod/yamusic-rs):
 
 - приложение собирается и запускается на macOS 11 и новее с процессором Apple (M1 и новее);
-- токен входа хранится в Связке ключей;
+- токен входа лежит в файле настроек, который может читать только ваш пользователь.
+  Связка ключей на каждую новую сборку снова просила бы пароль;
 - автозапуск сделан через LaunchAgent: при входе в систему открывается окно;
 - в Пункте управления есть карточка «Сейчас играет», медиаклавиши клавиатуры управляют плеером;
 - в [релизах этого репозитория](https://github.com/brel-pro/yamusic-rs-mac/releases) публикуется
@@ -192,7 +193,7 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 
 **Удаление.** Выключите автозапуск в настройках, если включали, и удалите приложение.
 Настройки лежат в `~/Library/Application Support/yamusic-rs`, кэш в `~/Library/Caches/yamusic-rs`,
-токен — в Связке ключей, служба `yamusic-rs`.
+токен — в `config.json` этого каталога.
 
 ## Какие системы поддерживаются
 
@@ -229,8 +230,9 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 а в `~/.config/yamusic-rs/config.json` остаётся только имя записи. Если связки ключей нет, например
 в голом оконном менеджере, токен хранится в этом файле, который может читать только ваш пользователь.
 
-На macOS токен лежит в Связке ключей (служба `yamusic-rs`), а в
-`~/Library/Application Support/yamusic-rs/config.json` остаётся только имя записи.
+На macOS токен лежит в `~/Library/Application Support/yamusic-rs/config.json`.
+Файл может читать только ваш пользователь. Связка ключей запоминает конкретный файл
+программы, а у каждой сборки подпись новая, поэтому пароль спрашивался бы снова.
 
 Токен отправляется только по https и только на домены `yandex.ru` и `yandex.net`. Проверка
 встроена в код (`src/client.rs`). Кроме Яндекса приложение ходит только к `api.github.com`,
@@ -418,7 +420,7 @@ SKIA_BINARIES_URL=file:///путь/к/skia.tar.gz cargo build --release
 | `src/sys/macos.rs` | То же для macOS: пути ~/Library, сокет, диалоги osascript, автозапуск LaunchAgent. |
 | `src/mpris.rs` | Медиаклавиши и плеер в панели Linux (MPRIS по D-Bus). |
 | `src/nowplaying.rs` | Карточка «Сейчас играет» и медиаклавиши macOS. |
-| `src/secret.rs` | Где хранится токен: DPAPI на Windows, связка ключей на Linux и macOS. |
+| `src/secret.rs` | Где хранится токен: DPAPI на Windows, связка ключей на Linux, файл настроек на macOS. |
 | `src/discord.rs` | Rich Presence через локальный канал Discord, без сторонних библиотек. |
 | `src/update.rs` | Проверка релизов на GitHub и замена exe на лету (на Linux — ссылка на релиз). |
 | `ui/theme.slint`, `src/palette.rs` | Сгенерированы `tools/gen_theme.py` и `tools/gen_palette.py` из CSS и JS оригинала. Руками не править. |
@@ -496,7 +498,7 @@ uses about 65 MB in one process.
   and restarts. Older builds only open the release page, so install 1.1.3 by hand once.
 - **Requirements:** Windows 11 (Windows 10 should work but is not tested regularly), Linux or macOS, a Yandex
   account, and Yandex Plus for full-length tracks.
-- **Privacy:** the token is encrypted with Windows DPAPI or kept in the Linux or macOS keychain
+- **Privacy:** the token is encrypted with Windows DPAPI, kept in the Linux keychain, or stored in the macOS settings file (readable only by your user; the keychain would ask for a password on every build)
   and only sent over HTTPS to `yandex.ru` / `yandex.net`. Besides Yandex, the app only talks to
   `api.github.com` (update checks) and the local Discord client (optional status). There is no telemetry.
 - **Build:** Rust 1.92+, then `cargo build --release`. On Windows you need MSVC Build Tools with the

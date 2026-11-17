@@ -1,8 +1,8 @@
 //! Где хранить токен. Windows: шифрование DPAPI, расшифровать может только та же учётная
 //! запись на том же компьютере, в config.json лежит base64 шифротекста. Linux: связка ключей
-//! пользователя через Secret Service, в config.json только имя записи. macOS: Связка ключей
-//! (login keychain), в config.json тоже только имя записи. Если спрятать некуда, токен остаётся
-//! в config.json с правами 0600.
+//! пользователя через Secret Service, в config.json только имя записи. macOS: файл настроек
+//! с правами 0600. Связка ключей помнит конкретный файл, а у каждой сборки подпись новая,
+//! поэтому пароль спрашивался бы на каждую версию.
 
 #[cfg(windows)]
 use base64::Engine as _;
@@ -137,72 +137,31 @@ mod keyring {
     }
 }
 
-/// Связка ключей macOS (login keychain). В config.json остаётся `keyring:<имя>`, секрет лежит
-/// в записи службы `yamusic-rs`. Повторно то же значение не пишем: конфиг сохраняется на каждое
-/// изменение настроек, а запись в связку может спросить разрешение.
+/// Связка ключей macOS. Новые токены сюда больше не пишутся: у сборки без сертификата
+/// Apple подпись каждый раз другая, и система спрашивает пароль на каждую версию.
+/// Чтение и удаление оставлены для одного переноса старой записи в config.json.
 #[cfg(target_os = "macos")]
 mod keychain {
     use crate::config::log;
-    use std::collections::HashMap;
-    use std::sync::Mutex;
 
     const SERVICE: &str = "yamusic-rs";
-
-    static STORED: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
-
-    fn cached(f: impl FnOnce(&mut HashMap<String, String>)) {
-        f(STORED.lock().unwrap_or_else(|e| e.into_inner()).get_or_insert_with(HashMap::new));
-    }
 
     fn entry(name: &str) -> Option<keyring::Entry> {
         keyring::Entry::new(SERVICE, name).map_err(|e| log(format!("связка ключей: {e}"))).ok()
     }
 
-    pub fn store(name: &str, secret: &str) -> bool {
-        let mut same = false;
-        cached(|m| same = m.get(name).is_some_and(|v| v == secret));
-        if same {
-            return true;
-        }
-        let Some(entry) = entry(name) else { return false };
-        match entry.set_password(secret) {
-            Ok(()) => {
-                cached(|m| {
-                    m.insert(name.into(), secret.into());
-                });
-                true
-            }
-            Err(e) => {
-                log(format!("связка ключей, токен останется в config.json: {e}"));
-                false
-            }
-        }
-    }
-
     pub fn load(name: &str) -> Option<String> {
-        let mut hit = None;
-        cached(|m| hit = m.get(name).cloned());
-        if hit.is_some() {
-            return hit;
-        }
-        let secret = match entry(name)?.get_password() {
-            Ok(secret) => secret,
-            Err(keyring::Error::NoEntry) => return None,
+        match entry(name)?.get_password() {
+            Ok(secret) => Some(secret),
+            Err(keyring::Error::NoEntry) => None,
             Err(e) => {
                 log(format!("связка ключей: {e}"));
-                return None;
+                None
             }
-        };
-        cached(|m| {
-            m.insert(name.into(), secret.clone());
-        });
-        Some(secret)
+        }
     }
 
     pub fn remove(name: &str) {
-        cached(|m| {
-            m.remove(name);
-        });
         let Some(entry) = entry(name) else { return };
         if let Err(e) = entry.delete_credential() {
             if !matches!(e, keyring::Error::NoEntry) {
@@ -230,7 +189,9 @@ pub fn seal(name: &str, plain: &str) -> Option<String> {
     }
     #[cfg(target_os = "macos")]
     {
-        keychain::store(name, plain).then(|| format!("{IN_KEYRING}{name}"))
+        // Связка ключей привязана к подписи файла. Её нет — пароль на каждую сборку.
+        let _ = (name, plain);
+        None
     }
 }
 
