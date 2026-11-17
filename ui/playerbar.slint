@@ -283,7 +283,7 @@ export component MiniPlayer inherits Rectangle {
             background: Theme.controls-color-primary-default-enabled;
         }
         if on: Cover {
-            x: 12px;
+            x: App.macos ? 78px : 12px;
             y: 12px;
             width: 64px;
             height: 64px;
@@ -292,7 +292,7 @@ export component MiniPlayer inherits Rectangle {
             source: App.cover;
         }
         VerticalLayout {
-            x: on ? 88px : 16px;
+            x: on ? (App.macos ? 154px : 88px) : (App.macos ? 82px : 16px);
             width: parent.width - self.x - 144px;
             alignment: center;
             spacing: 2px;
@@ -327,6 +327,6 @@ export component MiniPlayer inherits Rectangle {
         BarButton { x: parent.width - 48px; y: 28px; icon: Icons.next-small; icon-size: 20px; enabled: on; clicked => { App.next(); } }
 
         if ta.has-hover: BarButton { x: parent.width - 52px; y: 2px; width: 24px; height: 24px; icon: Icons.fullscreen; icon-size: 16px; clicked => { App.toggle-mini(); } }
-        if ta.has-hover: BarButton { x: parent.width - 28px; y: 2px; width: 24px; height: 24px; icon: Icons.close-xs; icon-size: 16px; clicked => { App.close(); } }
+        if ta.has-hover && !App.macos: BarButton { x: parent.width - 28px; y: 2px; width: 24px; height: 24px; icon: Icons.close-xs; icon-size: 16px; clicked => { App.close(); } }
     }
 }

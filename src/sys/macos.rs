@@ -15,14 +15,79 @@ pub fn created(w: &slint::Window) -> bool {
     w.with_winit_window(|_| ()).is_some()
 }
 
-/// Значок в Dock и в переключателе окон.
+/// Значок в Dock и системная шапка: прозрачный заголовок, светофор, скругление.
 pub fn prepare(w: &slint::Window) {
-    let Ok(img) = image::load_from_memory(include_bytes!("../../packaging/icons/256.png")) else { return };
-    let img = img.to_rgba8();
-    let (iw, ih) = img.dimensions();
-    if let Ok(icon) = winit::window::Icon::from_rgba(img.into_raw(), iw, ih) {
-        w.with_winit_window(|w| w.set_window_icon(Some(icon)));
+    if let Ok(img) = image::load_from_memory(include_bytes!("../../packaging/icons/256.png")) {
+        let img = img.to_rgba8();
+        let (iw, ih) = img.dimensions();
+        if let Ok(icon) = winit::window::Icon::from_rgba(img.into_raw(), iw, ih) {
+            w.with_winit_window(|w| w.set_window_icon(Some(icon)));
+        }
     }
+    w.with_winit_window(|win| {
+        use winit::platform::macos::WindowExtMacOS;
+        use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        win.set_has_shadow(true);
+        let Ok(handle) = win.window_handle() else { return };
+        let RawWindowHandle::AppKit(h) = handle.as_raw() else { return };
+        traffic_lights(h.ns_view.as_ptr());
+    });
+}
+
+/// Рамка остаётся, но заголовок не виден: контент на всю высоту, кнопки системы слева.
+fn traffic_lights(view: *mut std::ffi::c_void) {
+    const FULL_SIZE: usize = 1 << 15;
+    const TITLE_HIDDEN: isize = 1;
+    const SEPARATOR_NONE: isize = 1;
+    let window = msg_ptr(view, "window");
+    if window.is_null() {
+        return;
+    }
+    let mask = msg_usize(window, "styleMask");
+    msg_set_usize(window, "setStyleMask:", mask | FULL_SIZE);
+    msg_set_bool(window, "setTitlebarAppearsTransparent:", true);
+    msg_set_isize(window, "setTitleVisibility:", TITLE_HIDDEN);
+    msg_set_isize(window, "setTitlebarSeparatorStyle:", SEPARATOR_NONE);
+}
+
+unsafe extern "C" {
+    fn sel_registerName(name: *const i8) -> *mut u8;
+    fn objc_msgSend();
+}
+
+fn sel(name: &str) -> *mut u8 {
+    let c = std::ffi::CString::new(name).expect("sel");
+    unsafe { sel_registerName(c.as_ptr()) }
+}
+
+fn msg_ptr(obj: *mut std::ffi::c_void, name: &str) -> *mut std::ffi::c_void {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8) -> *mut std::ffi::c_void =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name)) }
+}
+
+fn msg_usize(obj: *mut std::ffi::c_void, name: &str) -> usize {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8) -> usize =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name)) }
+}
+
+fn msg_set_usize(obj: *mut std::ffi::c_void, name: &str, val: usize) {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8, usize) =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name), val) }
+}
+
+fn msg_set_isize(obj: *mut std::ffi::c_void, name: &str, val: isize) {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8, isize) =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name), val) }
+}
+
+fn msg_set_bool(obj: *mut std::ffi::c_void, name: &str, val: bool) {
+    let f: unsafe extern "C" fn(*mut std::ffi::c_void, *mut u8, bool) =
+        unsafe { std::mem::transmute(objc_msgSend as *const ()) };
+    unsafe { f(obj, sel(name), val) }
 }
 
 pub fn raise(w: &slint::Window) {

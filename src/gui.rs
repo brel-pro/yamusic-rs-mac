@@ -1421,6 +1421,7 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
     app.set_discord_on(cfg.discord_enabled);
     app.set_autostart(sys::autostart_enabled());
     app.set_linux(cfg!(unix));
+    app.set_macos(cfg!(target_os = "macos"));
     app.set_translations(crate::i18n::available());
     app.set_download_dir(music_dir(&cfg).display().to_string().into());
     app.set_hidden_blocks(landing_ui::hidden_titles(&cfg).into());
