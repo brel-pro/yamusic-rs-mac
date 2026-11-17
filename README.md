@@ -6,12 +6,13 @@
 
 **Интерфейс официального приложения Яндекс Музыки на Rust: один файл и в 13 раз меньше памяти.**
 
-[![Релиз](https://img.shields.io/github/v/release/SpolzerMod/yamusic-rs?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=ffd60a&labelColor=1c1c1f)](https://github.com/SpolzerMod/yamusic-rs/releases/latest)
+[![Релиз](https://img.shields.io/github/v/release/brel-pro/yamusic-rs-mac?label=%D1%80%D0%B5%D0%BB%D0%B8%D0%B7&color=ffd60a&labelColor=1c1c1f)](https://github.com/brel-pro/yamusic-rs-mac/releases/latest)
 ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-2b2b30?labelColor=1c1c1f)
 ![Linux бета](https://img.shields.io/badge/Linux-%D0%B1%D0%B5%D1%82%D0%B0-2b2b30?labelColor=1c1c1f)
+![macOS бета](https://img.shields.io/badge/macOS-11%2B%20%D0%B1%D0%B5%D1%82%D0%B0-2b2b30?labelColor=1c1c1f)
 [![GPL-3.0](https://img.shields.io/badge/%D0%BB%D0%B8%D1%86%D0%B5%D0%BD%D0%B7%D0%B8%D1%8F-GPL--3.0-2b2b30?labelColor=1c1c1f)](LICENSE)
 
-[Скачать](https://github.com/SpolzerMod/yamusic-rs/releases/latest) ·
+[Скачать](https://github.com/brel-pro/yamusic-rs-mac/releases/latest) ·
 [Возможности](#возможности) ·
 [Замеры](#замеры) ·
 [Какие системы](#какие-системы-поддерживаются) ·
@@ -34,7 +35,7 @@
 семь процессов и около 850 МБ памяти. **Яндекс Музыка RS** повторяет его интерфейс (те же
 шрифты, цвета, отступы и страницы), но написана на Rust и рисует окно сама, на процессоре.
 В итоге один файл на 26 МБ, один процесс и около 65 МБ памяти. Работает на Windows, а в бете
-и на Linux.
+на Linux и macOS.
 
 <div align="center">
 <img src="docs/stats.gif" width="100%" alt="Оперативная память: 852 МБ против 64 МБ. Процессы: 7 против 1. Размер на диске: 356 МБ против 26 МБ">
@@ -47,6 +48,24 @@
 > Это неофициальный проект. Он не связан с Яндексом, и Яндекс его не поддерживает. Названия
 > и товарные знаки принадлежат их владельцам. Нужен ваш аккаунт Яндекса, а для полных треков —
 > подписка Плюс, как и в официальном приложении.
+
+> [!NOTE]
+> Это форк [Яндекс Музыка RS](https://github.com/SpolzerMod/yamusic-rs) автора Spolzer.
+> Исходный проект — Windows и Linux. Здесь та же программа и отдельно сборка для macOS.
+
+## Чем форк отличается
+
+От [исходного репозитория](https://github.com/SpolzerMod/yamusic-rs):
+
+- приложение собирается и запускается на macOS 11 и новее с процессором Apple (M1 и новее);
+- токен входа хранится в Связке ключей;
+- автозапуск сделан через LaunchAgent: при входе в систему открывается окно;
+- в Пункте управления есть карточка «Сейчас играет», медиаклавиши клавиатуры управляют плеером;
+- в [релизах этого репозитория](https://github.com/brel-pro/yamusic-rs-mac/releases) публикуется
+  `yamusic-rs-macos-aarch64.zip`. Файлы для Windows и Linux по-прежнему выходят
+  в [релизах исходного проекта](https://github.com/SpolzerMod/yamusic-rs/releases).
+
+Интерфейс, запросы к Яндекс Музыке и плеер взяты из исходного проекта без переделки.
 
 ## Возможности
 
@@ -140,6 +159,37 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 и вход лежат в `~/.config/yamusic-rs`, кэш в `~/.cache/yamusic-rs`, токен в связке ключей под
 именем «Яндекс Музыка RS» (его можно удалить в «Паролях и ключах» или в KWallet).
 
+### macOS (бета)
+
+Файл этого форка: [`yamusic-rs-macos-aarch64.zip`](https://github.com/brel-pro/yamusic-rs-mac/releases/latest)
+на странице релизов. Внутри пакет «Яндекс Музыка RS».
+
+**Нужно:**
+
+- Mac с процессором Apple (M1, M2, M3, M4). Intel не поддерживается;
+- macOS 11 или новее;
+- аккаунт Яндекса, для полных треков — Плюс;
+- интернет.
+
+**Установка:**
+
+1. Скачайте архив, распакуйте и перенесите «Яндекс Музыка RS» в «Программы».
+2. Подписи Apple нет, поэтому первый запуск система блокирует. Откройте приложение через
+   правый клик → «Открыть», либо в «Системные настройки → Конфиденциальность и безопасность»
+   нажмите «Всё равно открыть».
+3. Вход по коду на ya.ru/device. Пароль в приложение вводить не нужно.
+
+Карточка «Сейчас играет» появляется в Пункте управления, медиаклавиши работают. Трея нет:
+закрытие окна закрывает приложение. Автозапуск открывает окно при входе.
+
+**Обновление.** Новый пакет ставится поверх старого: замените приложение в «Программах».
+Кнопка «Обновить» в этой сборке открывает релизы исходного проекта: адрес зашит при компиляции.
+Файл для macOS публикуется на странице релизов этого форка.
+
+**Удаление.** Выключите автозапуск в настройках, если включали, и удалите приложение.
+Настройки лежат в `~/Library/Application Support/yamusic-rs`, кэш в `~/Library/Caches/yamusic-rs`,
+токен — в Связке ключей, служба `yamusic-rs`.
+
 ## Какие системы поддерживаются
 
 | Система | Состояние |
@@ -149,15 +199,16 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 | Windows на ARM | Должна запускаться через эмуляцию x64. Не проверялась. |
 | Windows 7 и 8.1 | Не поддерживаются: текущий Rust под них не собирает. |
 | **Linux** x86_64 | Бета. Нужна glibc 2.35 или новее: Ubuntu 22.04+, Debian 12+, Mint 21+, Fedora, openSUSE, Arch и другие. Проверено на Ubuntu 22.04, Debian 13, Fedora 45 и Arch, в Wayland и X11. Звук через PipeWire, PulseAudio или ALSA. Медиаклавиши и плеер в панели GNOME и KDE работают через MPRIS. Трея пока нет, поэтому закрытие окна закрывает приложение. О проблемах пишите в [issues](https://github.com/SpolzerMod/yamusic-rs/issues). |
-| macOS | Пока не планируется. |
+| **macOS** Apple Silicon | Бета. macOS 11 и новее, только arm64. Звук через CoreAudio. Карточка «Сейчас играет» и медиаклавиши идут через Пункт управления. Трея нет, закрытие окна закрывает приложение. Подписи Apple нет. Intel не собирается. |
 
 **Нужно ещё:**
 - аккаунт Яндекса. Без Плюса сервер отдаёт только 30-секундные отрывки;
 - интернет. Офлайн-режима, как в мобильном приложении, нет;
 - шрифты YS Text и иконки. Если официальное приложение установлено, RS берёт их из него.
   Если нет, один раз скачивает с music.yandex.ru в `%APPDATA%\yamusic-rs\assets`
-  (на Linux в `~/.cache/yamusic-rs/assets`). Официального приложения под Linux нет, поэтому
-  там интерфейс пока только на русском: словари других языков есть только в нём.
+  (на Linux в `~/.cache/yamusic-rs/assets`, на macOS в `~/Library/Caches/yamusic-rs/assets`).
+  Официального приложения под Linux и macOS нет, поэтому там интерфейс пока только на русском:
+  словари других языков есть только в нём.
 
 ## Частые вопросы
 
@@ -173,6 +224,9 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 На Linux токен лежит в связке ключей (GNOME Keyring, KWallet или другая служба Secret Service),
 а в `~/.config/yamusic-rs/config.json` остаётся только имя записи. Если связки ключей нет, например
 в голом оконном менеджере, токен хранится в этом файле, который может читать только ваш пользователь.
+
+На macOS токен лежит в Связке ключей (служба `yamusic-rs`), а в
+`~/Library/Application Support/yamusic-rs/config.json` остаётся только имя записи.
 
 Токен отправляется только по https и только на домены `yandex.ru` и `yandex.net`. Проверка
 встроена в код (`src/client.rs`). Кроме Яндекса приложение ходит только к `api.github.com`,
@@ -203,7 +257,8 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 - на «Для вас и Тренды» показываются не все блоки: например, «Подборки музыки» и «Артист рекомендует»
   пока пропускаются;
 - нет выбора города для концертов и загрузки своих треков;
-- на Windows нет панели управления в системном меню громкости (на Linux она есть через MPRIS);
+- на Windows нет панели управления в системном меню громкости (на Linux она есть через MPRIS,
+  на macOS — карточка «Сейчас играет» в Пункте управления);
 - собственные настройки RS («Режим работы», «Статус в Discord», автозапуск) переведены только на русский.
 
 Есть и то, чего нет в оригинале: режим «Лёгкий», статус в Discord, автозапуск в трее.
@@ -214,7 +269,8 @@ AppImage монтирует себя через FUSE. Если пишет `Canno
 
 <br>
 
-Ошибки пишутся в `%APPDATA%\yamusic-rs\log.txt`, на Linux в `~/.config/yamusic-rs/log.txt`.
+Ошибки пишутся в `%APPDATA%\yamusic-rs\log.txt`, на Linux в `~/.config/yamusic-rs/log.txt`,
+на macOS в `~/Library/Application Support/yamusic-rs/log.txt`.
 API Яндекса неофициальный и может меняться без предупреждения.
 Как сообщить о проблеме, написано [ниже](#как-помочь).
 </details>
@@ -225,19 +281,19 @@ API Яндекса неофициальный и может меняться б�
 <br>
 
 `yamusic-rs.exe --tray` запускает приложение сразу в трее, так же работает автозапуск. Второй
-запуск не открывает вторую копию, а показывает уже открытое окно. На Linux трея пока нет, поэтому
-автозапуск открывает окно, а `--tray` ничего не делает. Второй запуск так же показывает открытое окно.
+запуск не открывает вторую копию, а показывает уже открытое окно. На Linux и macOS трея пока нет,
+поэтому автозапуск открывает окно, а `--tray` ничего не делает. Второй запуск так же показывает открытое окно.
 </details>
 
 ## Как помочь
 
 ### Сообщить об ошибке
 
-Откройте [issue](https://github.com/SpolzerMod/yamusic-rs/issues/new/choose) и напишите:
+Откройте [issue](https://github.com/brel-pro/yamusic-rs-mac/issues/new) и напишите:
 
 - версию RS из «Настройки → О приложении» и версию системы (на Linux ещё дистрибутив и окружение: GNOME, KDE…);
 - что вы делали, что ожидали увидеть и что получилось;
-- последние строки `%APPDATA%\yamusic-rs\log.txt` (на Linux `~/.config/yamusic-rs/log.txt`),
+- последние строки `%APPDATA%\yamusic-rs\log.txt` (на Linux `~/.config/yamusic-rs/log.txt`, на macOS `~/Library/Application Support/yamusic-rs/log.txt`),
   если там есть что-то про эту ошибку.
 
 Токена в логе нет, но в адресах запросов может встретиться числовой id вашего аккаунта. Его можно
@@ -260,7 +316,8 @@ API Яндекса неофициальный и может меняться б�
 
 Если после обновления приложение перестало запускаться, это тоже срочно, но писать можно
 в обычный issue, в заголовке укажите версию. Пока ждёте исправления, предыдущую версию можно
-скачать со страницы [релизов](https://github.com/SpolzerMod/yamusic-rs/releases).
+скачать со страницы [релизов](https://github.com/brel-pro/yamusic-rs-mac/releases).
+Для Windows и Linux предыдущие версии лежат в [исходном проекте](https://github.com/SpolzerMod/yamusic-rs/releases).
 
 ### Прислать код
 
@@ -279,8 +336,8 @@ API Яндекса неофициальный и может меняться б�
 Нужен Rust 1.92 или новее (`rustup update stable`). Дальше на любой системе одинаково:
 
 ```bash
-git clone https://github.com/SpolzerMod/yamusic-rs
-cd yamusic-rs
+git clone https://github.com/brel-pro/yamusic-rs-mac
+cd yamusic-rs-mac
 cargo build --release
 ```
 
@@ -320,6 +377,13 @@ sudo pacman -S --needed base-devel alsa-lib fontconfig freetype2 wayland libxkbc
 ([cargo-generate-rpm](https://github.com/cat-in-136/cargo-generate-rpm)) и `tools/appimage.sh`.
 Релизы собираются на Ubuntu 22.04: собранное на более новой системе потребует её версию glibc.
 
+#### macOS
+
+Нужны инструменты командной строки Xcode (`xcode-select --install`): из них берутся компилятор,
+заголовки и `iconutil`. Готовый файл: `target/release/yamusic-rs`. Пакет собирается из него
+скриптом `tools/macos-app.sh`, результат — `target/macos/Яндекс Музыка RS.app`. Релизы собираются
+на Apple Silicon.
+
 #### Если Skia не скачивается
 
 `skia-bindings` при сборке скачивает готовые бинарники Skia. Если не получается (корпоративный
@@ -347,8 +411,10 @@ SKIA_BINARIES_URL=file:///путь/к/skia.tar.gz cargo build --release
 | `src/images.rs`, `src/net.rs` | Фоновая загрузка обложек и данных страниц, кэши с бюджетом памяти. |
 | `src/sys/windows.rs`, `src/tray.rs` | Окна, трей, автозапуск и прочий Win32. |
 | `src/sys/linux.rs` | То же для Linux: пути XDG, один экземпляр через сокет, диалоги, автозапуск. |
+| `src/sys/macos.rs` | То же для macOS: пути ~/Library, сокет, диалоги osascript, автозапуск LaunchAgent. |
 | `src/mpris.rs` | Медиаклавиши и плеер в панели Linux (MPRIS по D-Bus). |
-| `src/secret.rs` | Где хранится токен: DPAPI на Windows, связка ключей на Linux. |
+| `src/nowplaying.rs` | Карточка «Сейчас играет» и медиаклавиши macOS. |
+| `src/secret.rs` | Где хранится токен: DPAPI на Windows, связка ключей на Linux и macOS. |
 | `src/discord.rs` | Rich Presence через локальный канал Discord, без сторонних библиотек. |
 | `src/update.rs` | Проверка релизов на GitHub и замена exe на лету (на Linux — ссылка на релиз). |
 | `ui/theme.slint`, `src/palette.rs` | Сгенерированы `tools/gen_theme.py` и `tools/gen_palette.py` из CSS и JS оригинала. Руками не править. |
@@ -381,11 +447,11 @@ git tag v1.1.0          # версия должна совпадать с Cargo.
 git push origin v1.1.0
 ```
 
-Сборка прогоняет clippy и тесты на Windows и на Linux, собирает `yamusic-rs.exe`, `.deb`, `.rpm`
-и AppImage, а когда обе сборки готовы, создаёт релиз со всеми файлами. На каждый push и pull
-request всё это тоже собирается, файлы можно скачать из артефактов сборки. Встроенная обновлялка
-ищет в релизе файл с именем ровно `yamusic-rs.exe` и сверяет его с `digest`, который GitHub
-считает при загрузке.
+Сборка прогоняет clippy и тесты на Windows, Linux и macOS, собирает `yamusic-rs.exe`, `.deb`, `.rpm`,
+AppImage и zip с приложением для Apple Silicon. Когда все три сборки готовы, создаётся релиз со всеми
+файлами. На каждый push и pull request всё это тоже собирается, файлы можно скачать из артефактов
+сборки. Встроенная обновлялка ищет в релизе файл с именем ровно `yamusic-rs.exe` и сверяет его
+с `digest`, который GitHub считает при загрузке.
 
 ## Лицензия
 
@@ -399,7 +465,13 @@ Copyright © 2026 Spolzer. Код распространяется по лице
 
 ## English
 
-**Yandex Music RS** is an unofficial Yandex Music client for Windows and Linux written in Rust.
+**Yandex Music RS** for macOS is a fork of [Spolzer's Yandex Music RS](https://github.com/SpolzerMod/yamusic-rs).
+The original project targets Windows and Linux. This repository adds a macOS build: Keychain storage,
+login-item autostart, Control Center Now Playing and an ad-hoc signed `.app`. The interface, the Yandex
+Music API client and the player are unchanged. Windows and Linux downloads stay on the
+[original releases](https://github.com/SpolzerMod/yamusic-rs/releases).
+
+The program is an unofficial Yandex Music client for Windows, Linux and macOS written in Rust.
 It mirrors the official desktop app closely (same fonts, colours, layout and pages), but instead
 of Electron it is a single 26 MB executable that renders its window on the CPU with Slint and Skia.
 Running the same scenario, the official app uses about 850 MB of RAM across 7 processes, and RS
@@ -412,16 +484,23 @@ uses about 65 MB in one process.
   and an AppImage for everything else; a [`PKGBUILD`](packaging/aur/PKGBUILD) is available for Arch.
   Needs glibc 2.35 or newer. Sound goes through PipeWire, PulseAudio or ALSA, media keys and
   the GNOME/KDE player widget work via MPRIS. There is no tray icon yet.
-- **Requirements:** Windows 11 (Windows 10 should work but is not tested regularly) or Linux, a Yandex
-  account, and Yandex Plus for full-length tracks. macOS is not planned.
-- **Privacy:** the token is encrypted with Windows DPAPI or kept in the Linux keyring (Secret Service)
+- **macOS (beta):** download [`yamusic-rs-macos-aarch64.zip`](https://github.com/brel-pro/yamusic-rs-mac/releases/latest)
+  from this fork. It needs an Apple silicon Mac (M1 or newer) and macOS 11 or newer. There is no Intel
+  build and no Apple notarization, so the first launch has to be allowed in System Settings
+  (right-click the app and choose Open). Now Playing and the media keys work through Control Center.
+  There is no tray icon.
+- **Requirements:** Windows 11 (Windows 10 should work but is not tested regularly), Linux or macOS, a Yandex
+  account, and Yandex Plus for full-length tracks.
+- **Privacy:** the token is encrypted with Windows DPAPI or kept in the Linux or macOS keychain
   and only sent over HTTPS to `yandex.ru` / `yandex.net`. Besides Yandex, the app only talks to
   `api.github.com` (update checks) and the local Discord client (optional status). There is no telemetry.
 - **Build:** Rust 1.92+, then `cargo build --release`. On Windows you need MSVC Build Tools with the
-  Windows SDK, on Linux a C toolchain and the `-dev` packages listed in the Russian section above.
-- **Bugs:** open an [issue](https://github.com/SpolzerMod/yamusic-rs/issues/new/choose) with the app
+  Windows SDK, on Linux a C toolchain and the `-dev` packages listed in the Russian section above,
+  on macOS the Xcode command line tools and then `tools/macos-app.sh`.
+- **Bugs:** open an [issue](https://github.com/brel-pro/yamusic-rs-mac/issues/new) with the app
   version, your OS version (on Linux also the distro and desktop) and the last lines of
-  `%APPDATA%\yamusic-rs\log.txt` (`~/.config/yamusic-rs/log.txt` on Linux). Security
+  `%APPDATA%\yamusic-rs\log.txt` (`~/.config/yamusic-rs/log.txt` on Linux,
+  `~/Library/Application Support/yamusic-rs/log.txt` on macOS). Security
   problems go to [Report a vulnerability](https://github.com/SpolzerMod/yamusic-rs/security/advisories/new),
   not to public issues.
 

@@ -52,6 +52,12 @@ futures-lite = "2"
 # Токен в связке ключей (GNOME Keyring, KWallet) через тот же zbus.
 secret-service = { version = "5.2", default-features = false, features = ["rt-async-io-crypto-rust"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+# Связка ключей. Только apple-native: остальные бэкенды тянут D-Bus и Windows.
+keyring = { version = "3", default-features = false, features = ["apple-native"] }
+# Карточка «Сейчас играет» в Пункте управления и медиаклавиши.
+souvlaki = "0.8"
+
 [build-dependencies]
 slint-build = "1.18"
 

@@ -16,12 +16,15 @@ mod images;
 mod landing;
 #[cfg(target_os = "linux")]
 mod mpris;
+#[cfg(target_os = "macos")]
+mod nowplaying;
 mod net;
 mod palette;
 mod player;
 mod secret;
 #[cfg_attr(windows, path = "sys/windows.rs")]
 #[cfg_attr(target_os = "linux", path = "sys/linux.rs")]
+#[cfg_attr(target_os = "macos", path = "sys/macos.rs")]
 mod sys;
 mod tags;
 #[cfg(windows)]

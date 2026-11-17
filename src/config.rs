@@ -17,8 +17,8 @@ pub struct Config {
     token_sealed: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     refresh_sealed: Option<String>,
-    /// Токен открытым текстом: старый формат или Linux без связки ключей. Как только спрятать есть
-    /// куда, при запуске переносится туда.
+    /// Токен открытым текстом: старый формат или связка ключей недоступна. Как только спрятать
+    /// есть куда, при запуске переносится туда.
     #[serde(rename = "token", skip_serializing_if = "Option::is_none")]
     token_plain: Option<String>,
     /// Unix-время, когда токен истечёт.

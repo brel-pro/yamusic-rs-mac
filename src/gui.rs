@@ -1420,7 +1420,7 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
     );
     app.set_discord_on(cfg.discord_enabled);
     app.set_autostart(sys::autostart_enabled());
-    app.set_linux(cfg!(target_os = "linux"));
+    app.set_linux(cfg!(unix));
     app.set_translations(crate::i18n::available());
     app.set_download_dir(music_dir(&cfg).display().to_string().into());
     let ctx = Rc::new(Ctx {
@@ -1724,7 +1724,7 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
         }
     });
     // Как у оригинала на Windows: пока играет трек, окно прячется в трей, иначе приложение закрывается.
-    // На Linux трея пока нет, там закрытие всегда выход.
+    // На Linux и macOS трея пока нет, там закрытие всегда выход.
     #[cfg(windows)]
     {
         let weak = ui.as_weak();
@@ -1750,7 +1750,10 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
         sys::on_wake(move || {
             let _ = weak.upgrade_in_event_loop(|ui| reveal(&ui));
         });
+        #[cfg(target_os = "linux")]
         install_mpris(&ui, &player);
+        #[cfg(target_os = "macos")]
+        install_nowplaying(&ui, &player);
     }
 
     ui.window().on_winit_window_event(|_, ev| {
@@ -1821,6 +1824,30 @@ pub fn run(start_hidden: bool) -> Result<(), slint::PlatformError> {
     // Фоновые потоки (аудио, сеть, обложки) не ждём: иначе процесс может остаться
     // без окна и держать мьютекс, и следующий запуск молча закроется.
     std::process::exit(0)
+}
+
+/// Медиаклавиши и карточка «Сейчас играет» в Пункте управления macOS.
+#[cfg(target_os = "macos")]
+fn install_nowplaying(ui: &AppWindow, player: &Player) {
+    let weak = ui.as_weak();
+    let p = player.clone();
+    crate::nowplaying::spawn(player.clone(), move |e| {
+        let p = p.clone();
+        let _ = weak.upgrade_in_event_loop(move |ui| {
+            use crate::nowplaying::Event;
+            let app = ui.global::<App>();
+            let s = p.state();
+            match e {
+                Event::PlayPause => app.invoke_play_pause(),
+                Event::Play if !s.playing => app.invoke_play_pause(),
+                Event::Pause if s.playing => app.invoke_play_pause(),
+                Event::Play | Event::Pause => {}
+                Event::Next => p.send(Cmd::Next),
+                Event::Prev => p.send(Cmd::Prev),
+                Event::Seek(sec) => p.send(Cmd::Seek(sec)),
+            }
+        });
+    });
 }
 
 /// Медиаклавиши и плеер в панели Linux. Команды выполняются так же, как кнопки в окне.
